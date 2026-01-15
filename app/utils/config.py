@@ -6,6 +6,9 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 ENV_PATH = BASE_DIR / ".env"
 
 load_dotenv(dotenv_path=ENV_PATH)
+
+print("BOT_TOKEN =", os.getenv("BOT_TOKEN"))
+
 def _required(key: str) -> str:
     value = os.getenv(key)
     if not value:
