@@ -40,6 +40,16 @@ def run_bot():
             channel_post_handler,
         )
     )
+
+    application.add_handler(
+        CallbackQueryHandler(pagination_callback, pattern=r"^search\|")
+    )
+    application.add_handler(
+        MessageHandler(
+            filters.Chat(DB_CHANNEL_ID) & filters.UpdateType.CHANNEL_POST,
+            channel_post_handler,
+        )
+    )
     application.add_handler(
         CommandHandler("set_ad", set_ad_command)
     )
