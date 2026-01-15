@@ -2,6 +2,7 @@ from pymongo import MongoClient, ASCENDING
 from pymongo.errors import ConnectionFailure
 from app.utils.config import DB_URI
 from app.utils.logger import setup_logger
+import certifi
 
 logger = setup_logger()
 
@@ -16,7 +17,12 @@ def get_db():
         return _db
 
     try:
-        _client = MongoClient(DB_URI, serverSelectionTimeoutMS=5000)
+        _client = MongoClient(
+            DB_URI,
+            tls=True,
+            tlsCAFile=certifi.where(),
+            serverSelectionTimeoutMS=5000,
+        )
         _client.admin.command("ping")
     except ConnectionFailure as e:
         logger.error("❌ Failed to connect to MongoDB Atlas")
