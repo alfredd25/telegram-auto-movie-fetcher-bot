@@ -4,6 +4,10 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parents[2]  
 ENV_PATH = BASE_DIR / ".env"
+print("CONFIG FILE:", __file__)
+print("ENV PATH:", ENV_PATH)
+print("ENV EXISTS:", ENV_PATH.exists())
+
 
 load_dotenv(dotenv_path=ENV_PATH)
 
