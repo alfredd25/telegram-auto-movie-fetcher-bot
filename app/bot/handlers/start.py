@@ -23,6 +23,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if payload.startswith("getfile-"):
         try:
+            logger.info(f"DEBUG: Processing payload: {payload}")
+            
             # Format: getfile-<base64_encoded_string>
             # where encoded string contains: "channel_id_message_id"
             encoded_data = payload.split("-", 1)[1]
@@ -33,16 +35,18 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 encoded_data += '=' * (4 - missing_padding)
 
             decoded_data = base64.urlsafe_b64decode(encoded_data).decode("utf-8")
+            logger.info(f"DEBUG: Decoded data: {decoded_data}")
             
             # Extract IDs using underscore separator
             parts = decoded_data.split("_")
             if len(parts) < 2:
-                raise ValueError("Invalid payload format")
+                raise ValueError(f"Invalid payload format: {decoded_data}")
                 
             target_channel_id = int(parts[0])
             target_message_id = int(parts[1])
+            logger.info(f"DEBUG: Target Channel: {target_channel_id}, Message: {target_message_id}")
             
-            # Security check: ensure we are only forwarding from our allowed DB channel
+            # Security check
             if target_channel_id != int(DB_CHANNEL_ID):
                  logger.warning(f"Channel ID mismatch. Target: {target_channel_id}, Config: {DB_CHANNEL_ID}")
 
@@ -54,8 +58,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="HTML"
             )
             
-        except (ValueError, IndexError, TelegramError) as e:
-            logger.error(f"Error processing start payload {payload}: {e}")
+        except Exception as e:
+            logger.error(f"Error processing start payload {payload}: {e}", exc_info=True)
             await message.reply_text("❌ Invalid link or file not found.")
     else:
          await message.reply_text(
