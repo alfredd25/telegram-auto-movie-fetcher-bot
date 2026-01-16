@@ -4,6 +4,7 @@ from telegram.ext import ContextTypes
 from telegram.error import TelegramError
 from app.utils.config import DB_CHANNEL_ID
 from app.utils.logger import setup_logger
+from app.db.queries import get_ad_text
 
 logger = setup_logger()
 
@@ -58,11 +59,16 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if target_channel_id != int(DB_CHANNEL_ID):
                  logger.warning(f"Channel ID mismatch. Target: {target_channel_id}, Config: {DB_CHANNEL_ID}")
 
+            ad_text = get_ad_text()
+            caption = f"Here is your file, requested by {user.mention_html()}"
+            if ad_text:
+                caption += f"\n\n{ad_text}"
+
             await context.bot.copy_message(
                 chat_id=message.chat_id,
                 from_chat_id=target_channel_id,
                 message_id=target_message_id,
-                caption=f"Here is your file, requested by {user.mention_html()}",
+                caption=caption,
                 parse_mode="HTML"
             )
             
