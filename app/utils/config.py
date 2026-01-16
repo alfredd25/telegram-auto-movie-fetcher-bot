@@ -35,6 +35,13 @@ CLIENT_CHANNEL_ID = int(
     else _required("PROD_CLIENT_CHANNEL_ID")
 )
 
+# Optional: Channel to collect small files
+_col_id_str = (
+    os.getenv("TEST_COLLECTION_CHANNEL_ID") if MODE == "TEST"
+    else os.getenv("PROD_COLLECTION_CHANNEL_ID")
+)
+COLLECTION_CHANNEL_ID = int(_col_id_str) if _col_id_str else None
+
 ADMIN_USER_IDS = {
     int(x.strip())
     for x in _required("ADMIN_USER_IDS").split(",")

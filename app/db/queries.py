@@ -12,6 +12,31 @@ logger = setup_logger()
 
 
 # ---------- MOVIES ----------
+
+FORWARDED_COLLECTION = "forwarded_files"
+
+def get_movie_metadata(channel_id: int, message_id: int) -> dict | None:
+    db = get_db()
+    return db[MOVIES_COLLECTION].find_one(
+        {"channel_id": channel_id, "message_id": message_id},
+        {"_id": 0, "file_size": 1, "file_name": 1}
+    )
+
+def is_file_forwarded(channel_id: int, message_id: int) -> bool:
+    db = get_db()
+    return db[FORWARDED_COLLECTION].find_one(
+        {"original_channel_id": channel_id, "original_message_id": message_id}
+    ) is not None
+
+def mark_file_as_forwarded(channel_id: int, message_id: int, dest_message_id: int = None):
+    db = get_db()
+    db[FORWARDED_COLLECTION].insert_one({
+        "original_channel_id": channel_id,
+        "original_message_id": message_id,
+        "dest_message_id": dest_message_id,
+        "forwarded_at": datetime.utcnow()
+    })
+
 def normalize_query(text: str) -> str:
     text = text.lower()
     text = re.sub(r"[.\-_()\[\]]+", " ", text)
