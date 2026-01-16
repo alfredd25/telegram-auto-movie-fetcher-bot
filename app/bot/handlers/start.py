@@ -8,6 +8,7 @@ from app.utils.logger import setup_logger
 logger = setup_logger()
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info("DEBUG: Start command triggered")
     user = update.effective_user
     message = update.effective_message
     
