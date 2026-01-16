@@ -81,9 +81,9 @@ async def search_command(
 
     lines = []
     for idx, movie in enumerate(results, start=1):
-        # Create deep link payload: channel_id-message_id
+        # Create deep link payload: channel_id_message_id
         # We encode it to keep it clean and URL safe
-        payload_data = f"{movie['channel_id']}-{movie['message_id']}"
+        payload_data = f"{movie['channel_id']}_{movie['message_id']}"
         encoded_payload = base64.urlsafe_b64encode(payload_data.encode()).decode()
         
         link = f"https://t.me/{bot_username}?start=getfile-{encoded_payload}"

@@ -58,7 +58,7 @@ async def pagination_callback(
         results, start=offset + 1
     ):
         # Create deep link payload
-        payload_data = f"{movie['channel_id']}-{movie['message_id']}"
+        payload_data = f"{movie['channel_id']}_{movie['message_id']}"
         encoded_payload = base64.urlsafe_b64encode(payload_data.encode()).decode()
         
         link = f"https://t.me/{bot_username}?start=getfile-{encoded_payload}"
