@@ -66,6 +66,14 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="HTML"
             )
             
+        except TelegramError as e:
+            if "Chat not found" in str(e):
+                logger.error(f"Bot is not in the DB channel ({target_channel_id}). Please add the bot as Admin.")
+                await message.reply_text("🚨 Error: I cannot access the file channel. Please ensure I am an Admin there.")
+            else:
+                logger.error(f"Telegram error processing start payload: {e}")
+                await message.reply_text("❌ Unable to retrieve the file.")
+                
         except Exception as e:
             logger.error(f"Error processing start payload {payload}: {e}", exc_info=True)
             await message.reply_text("❌ Invalid link or file not found.")
