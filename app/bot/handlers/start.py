@@ -23,10 +23,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if payload.startswith("getfile-"):
         try:
-            logger.info(f"DEBUG: Processing payload: {payload}")
-            
             # Format: getfile-<base64_encoded_string>
-            # where encoded string contains: "channel_id_message_id"
             encoded_data = payload.split("-", 1)[1]
             
             # Fix padding if necessary
@@ -35,17 +32,27 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 encoded_data += '=' * (4 - missing_padding)
 
             decoded_data = base64.urlsafe_b64decode(encoded_data).decode("utf-8")
-            logger.info(f"DEBUG: Decoded data: {decoded_data}")
             
-            # Extract IDs using underscore separator
-            parts = decoded_data.split("_")
-            if len(parts) < 2:
-                raise ValueError(f"Invalid payload format: {decoded_data}")
-                
-            target_channel_id = int(parts[0])
-            target_message_id = int(parts[1])
-            logger.info(f"DEBUG: Target Channel: {target_channel_id}, Message: {target_message_id}")
-            
+            # Attempt to parse
+            # Support both `_` (new) and `-` (old) separators
+            if "_" in decoded_data:
+                parts = decoded_data.split("_")
+                # Expected: [channel_id, message_id]
+                target_channel_id = int(parts[0])
+                target_message_id = int(parts[-1]) # Use last part as message_id to be safe
+            elif "-" in decoded_data:
+                # Old format: -100xxx-123 or 123-456
+                # If negative channel ID: -100...-123 -> ['', '100...', '123'] (split by -)
+                # We can't simply split by - if the ID is negative.
+                # Regex or rsplit is better.
+                # Message ID is always the last part and positive.
+                parts = decoded_data.rsplit("-", 1)
+                # parts[0] is channel (string), parts[1] is message
+                target_channel_id = int(parts[0])
+                target_message_id = int(parts[1])
+            else:
+                 raise ValueError(f"Unknown format: {decoded_data}")
+
             # Security check
             if target_channel_id != int(DB_CHANNEL_ID):
                  logger.warning(f"Channel ID mismatch. Target: {target_channel_id}, Config: {DB_CHANNEL_ID}")
