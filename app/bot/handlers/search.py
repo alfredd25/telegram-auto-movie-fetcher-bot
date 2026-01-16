@@ -7,6 +7,7 @@ from app.utils.logger import setup_logger
 from app.utils.auto_delete import schedule_auto_delete
 from app.db.queries import get_ad_text
 from app.utils.permissions import is_admin
+from app.utils.formatters import format_size
 
 logger = setup_logger()
 
@@ -86,9 +87,10 @@ async def search_command(
         encoded_payload = base64.urlsafe_b64encode(payload_data.encode()).decode()
         
         link = f"https://t.me/{bot_username}?start=getfile-{encoded_payload}"
+        size = format_size(movie.get('file_size'))
         
         lines.append(
-            f"{idx}. <a href='{link}'>{movie['file_name']}</a>"
+            f"{idx}. <a href='{link}'>{movie['file_name']}</a> ({size})"
         )
 
     reply_text = (

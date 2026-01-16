@@ -10,6 +10,7 @@ from app.bot.handlers.search import (
     RESULTS_PER_PAGE,
 )
 from app.utils.logger import setup_logger
+from app.utils.formatters import format_size
 
 logger = setup_logger()
 
@@ -61,9 +62,10 @@ async def pagination_callback(
         encoded_payload = base64.urlsafe_b64encode(payload_data.encode()).decode()
         
         link = f"https://t.me/{bot_username}?start=getfile-{encoded_payload}"
+        size = format_size(movie.get('file_size'))
         
         lines.append(
-            f"{idx}. <a href='{link}'>{movie['file_name']}</a>"
+            f"{idx}. <a href='{link}'>{movie['file_name']}</a> ({size})"
         )
 
     text = (
