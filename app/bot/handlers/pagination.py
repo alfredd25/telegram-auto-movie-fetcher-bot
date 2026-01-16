@@ -1,3 +1,4 @@
+import base64
 from telegram import Update
 from telegram.ext import ContextTypes
 from app.db.queries import get_ad_text
@@ -12,7 +13,7 @@ from app.utils.logger import setup_logger
 
 logger = setup_logger()
 
-AUTO_DELETE_NOTICE = "⚠️ <i>Files will be deleted in 2 minutes. If you wish to download this file, kindly forward this message to any active or saved chat and start the download from there.</i>"
+AUTO_DELETE_NOTICE = "⚠️ <i>Search results will be deleted in 2 minutes.</i>"
 
 
 async def pagination_callback(
@@ -21,6 +22,10 @@ async def pagination_callback(
 ):
     query = update.callback_query
     await query.answer()
+
+    # Get bot username for deep linking
+    bot = await context.bot.get_me()
+    bot_username = bot.username
 
     try:
         action, search_query, page_str = query.data.split("|")
@@ -51,11 +56,12 @@ async def pagination_callback(
     for idx, movie in enumerate(
         results, start=offset + 1
     ):
-        link = (
-            f"https://t.me/c/"
-            f"{str(movie['channel_id'])[4:]}/"
-            f"{movie['message_id']}"
-        )
+        # Create deep link payload
+        payload_data = f"{movie['channel_id']}-{movie['message_id']}"
+        encoded_payload = base64.urlsafe_b64encode(payload_data.encode()).decode()
+        
+        link = f"https://t.me/{bot_username}?start=getfile-{encoded_payload}"
+        
         lines.append(
             f"{idx}. <a href='{link}'>{movie['file_name']}</a>"
         )
@@ -73,7 +79,7 @@ async def pagination_callback(
         page_size=RESULTS_PER_PAGE,
     )
 
-    reply_text += f"\n\n{AUTO_DELETE_NOTICE}"
+    text += f"\n\n{AUTO_DELETE_NOTICE}"
     ad_text = get_ad_text()
     if ad_text:
         text += f"\n\n{ad_text}"

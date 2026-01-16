@@ -8,6 +8,7 @@ from app.utils.config import BOT_TOKEN
 from app.utils.logger import setup_logger
 from app.db.models import ensure_indexes
 from app.bot.handlers.search import search_command
+from app.bot.handlers.start import start_command
 from app.bot.handlers.admin import set_ad_command
 from app.bot.handlers.errors import error_handler
 
@@ -31,6 +32,7 @@ def run_bot():
 
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 
+    application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("search", search_command))
     application.add_handler(CommandHandler("set_ad", set_ad_command))
 

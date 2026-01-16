@@ -1,3 +1,4 @@
+import base64
 from telegram import Update
 from telegram.ext import ContextTypes
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -10,7 +11,7 @@ from app.utils.permissions import is_admin
 logger = setup_logger()
 
 RESULTS_PER_PAGE = 5
-AUTO_DELETE_NOTICE = "⚠️ <i>Files will be deleted in 2 minutes. If you wish to download this file, kindly forward this message to any active or saved chat and start the download from there.</i>"
+AUTO_DELETE_NOTICE = "⚠️ <i>Search results will be deleted in 2 minutes.</i>"
 
 
 def build_pagination_keyboard(
@@ -49,6 +50,9 @@ async def search_command(
     message = update.effective_message
     user = update.effective_user
     
+    # Get bot username for deep linking
+    bot = await context.bot.get_me()
+    bot_username = bot.username
 
     page = 0
 
@@ -76,11 +80,13 @@ async def search_command(
 
     lines = []
     for idx, movie in enumerate(results, start=1):
-        link = (
-            f"https://t.me/c/"
-            f"{str(movie['channel_id'])[4:]}/"
-            f"{movie['message_id']}"
-        )
+        # Create deep link payload: channel_id-message_id
+        # We encode it to keep it clean and URL safe
+        payload_data = f"{movie['channel_id']}-{movie['message_id']}"
+        encoded_payload = base64.urlsafe_b64encode(payload_data.encode()).decode()
+        
+        link = f"https://t.me/{bot_username}?start=getfile-{encoded_payload}"
+        
         lines.append(
             f"{idx}. <a href='{link}'>{movie['file_name']}</a>"
         )
