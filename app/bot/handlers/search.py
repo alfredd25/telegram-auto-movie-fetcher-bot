@@ -67,9 +67,21 @@ async def search_command(
 
     total = count_movies(query)
     if total == 0:
-        await message.reply_text(
-            f"❌ No results found for:\n<b>{query}</b>",
+        sent_msg = await message.reply_text(
+            "⚠️ Oops! We couldn’t process that search.\n\n"
+            "Please try searching using only the movie or series name, with an optional year, language, season, or episode.\n"
+            "Make sure the spelling is correct and avoid using special characters or extra words.\n\n"
+            "Also, check that the title is already OTT released.\n\n"
+            "Thanks for your understanding 😊\n"
+            "<i>This message will be deleted in 2 minutes.</i>",
             parse_mode="HTML",
+        )
+        
+        schedule_auto_delete(
+            context=context,
+            chat_id=sent_msg.chat_id,
+            bot_message_id=sent_msg.message_id,
+            user_message_id=message.message_id,
         )
         return
 
