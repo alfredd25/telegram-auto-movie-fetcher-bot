@@ -2,9 +2,9 @@ import base64
 from telegram import Update
 from telegram.ext import ContextTypes
 from telegram.error import TelegramError
-from app.utils.config import DB_CHANNEL_ID
+from app.utils.config import DB_CHANNEL_ID, COLLECTION_CHANNEL_ID
 from app.utils.logger import setup_logger
-from app.db.queries import get_ad_text
+from app.db.queries import get_ad_text, is_file_forwarded, mark_file_as_forwarded
 
 logger = setup_logger()
 
@@ -104,6 +104,33 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.error(f"Error processing start payload {payload}: {e}", exc_info=True)
             await message.reply_text("❌ Invalid link or file not found.")
+
+        # --- Automatic Forwarding to Collection Channel ---
+        if COLLECTION_CHANNEL_ID:
+            try:
+                # Check if already forwarded to avoid spam/duplicates
+                if not is_file_forwarded(target_channel_id, target_message_id):
+                    logger.info(f"Forwarding new file to Collection Channel ({COLLECTION_CHANNEL_ID})...")
+                    
+                    sent_msg = await context.bot.copy_message(
+                        chat_id=COLLECTION_CHANNEL_ID,
+                        from_chat_id=target_channel_id,
+                        message_id=target_message_id,
+                        caption=caption,
+                        parse_mode="HTML"
+                    )
+                    
+                    mark_file_as_forwarded(
+                        channel_id=target_channel_id, 
+                        message_id=target_message_id, 
+                        dest_message_id=sent_msg.message_id
+                    )
+                else:
+                    logger.info("File already forwarded to Collection Channel. Skipping.")
+                    
+            except Exception as e:
+                # Do NOT fail the user request if this background task fails
+                logger.error(f"Failed to forward to Collection Channel: {e}")
 
 
     else:
