@@ -1,6 +1,7 @@
 import base64
 from telegram import Update
 from telegram.ext import ContextTypes
+from telegram.constants import ChatType
 from app.db.queries import get_ad_text
 
 from app.utils.auto_delete import schedule_auto_delete
@@ -36,6 +37,13 @@ async def pagination_callback(
         return
 
     if action != "search":
+        return
+
+    if query.message.chat.type == ChatType.PRIVATE:
+        await query.answer(
+            text="⚠️ Search is only available in the group.",
+            show_alert=True
+        )
         return
 
     total = count_movies(search_query)

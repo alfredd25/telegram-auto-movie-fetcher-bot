@@ -57,3 +57,5 @@ AUTO_DELETE_SECONDS = int(
 TG_API_ID = int(_required("TG_API_ID"))
 TG_API_HASH = _required("TG_API_HASH")
 
+GROUP_SUPPORT_URL = _required("GROUP_SUPPORT_URL")
+

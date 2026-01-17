@@ -7,7 +7,10 @@ from app.utils.logger import setup_logger
 from app.utils.auto_delete import schedule_auto_delete
 from app.db.queries import get_ad_text
 from app.utils.permissions import is_admin
+
 from app.utils.formatters import format_size
+from app.utils.config import GROUP_SUPPORT_URL
+from telegram.constants import ChatType
 
 logger = setup_logger()
 
@@ -57,9 +60,23 @@ async def search_command(
 
     page = 0
 
+
     if not context.args:
         await message.reply_text(
             "❗ Usage:\n/search <movie name>"
+        )
+        return
+
+    # Check for private chat
+    if message.chat.type == ChatType.PRIVATE:
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔍 Join Group to Search", url=GROUP_SUPPORT_URL)]
+        ])
+        await message.reply_text(
+            "❌ <b>Search is not available in private chat.</b>\n\n"
+            "Please join our group to search for movies and series.",
+            parse_mode="HTML",
+            reply_markup=keyboard
         )
         return
 
