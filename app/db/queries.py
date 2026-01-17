@@ -61,27 +61,58 @@ def search_movies(
     # We match any sequence of non-alphanumeric chars as separators
     pattern = r".*".join(terms)
 
-    cursor = (
-        db[MOVIES_COLLECTION]
-        .find(
-            {
+    pipeline = [
+        {
+            "$match": {
                 "normalized_text": {
                     "$regex": pattern,
                     "$options": "i",
                 }
-            },
-            {
+            }
+        },
+        {
+            "$addFields": {
+                "match_index": {
+                    "$indexOfCP": ["$normalized_text", normalized]
+                }
+            }
+        },
+        {
+            "$addFields": {
+                "score": {
+                    "$switch": {
+                        "branches": [
+                            # Starts with query -> Highest priority
+                            {"case": {"$eq": ["$match_index", 0]}, "then": 3},
+                            # Contains exact query phrase -> High priority
+                            {"case": {"$gt": ["$match_index", -1]}, "then": 2},
+                        ],
+                        # Default (Scattered match) -> Low priority
+                        "default": 1
+                    }
+                }
+            }
+        },
+        {
+            "$sort": {
+                "score": -1,
+                "message_id": ASCENDING
+            }
+        },
+        {"$skip": offset},
+        {"$limit": limit},
+        {
+            "$project": {
                 "_id": 0,
                 "message_id": 1,
                 "channel_id": 1,
                 "file_name": 1,
                 "file_size": 1,
-            },
-        )
-        .sort("message_id", ASCENDING)
-        .skip(offset)
-        .limit(limit)
-    )
+            }
+        },
+    ]
+
+    cursor = db[MOVIES_COLLECTION].aggregate(pipeline)
 
     return list(cursor)
 
