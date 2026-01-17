@@ -51,52 +51,77 @@ def search_movies(
     offset: int,
 ):
     db = get_db()
-    normalized = normalize_query(query)
+    normalized_query = normalize_query(query)
     
-    # Create a flexible regex pattern from the query terms
-    # Escape terms to handle special regex chars in the query itself
-    terms = [re.escape(term) for term in normalized.split()]
+    # Escape for regex safely
+    escaped_query = re.escape(normalized_query)
     
-    # Pattern: term1 + [any separators]* + term2 + ...
-    # We match any sequence of non-alphanumeric chars as separators
-    pattern = r".*".join(terms)
-
+    # Strict 4-Level Relevance Scoring
+    # Priority 4: Exact Match (Score 40)
+    # Priority 3: Prefix Match (Score 30) - Starts with query + word boundary
+    # Priority 2: Word Match (Score 20) - Contains query as full word
+    # Priority 1: Partial Match (Score 10) - Verification fallback
+    
     pipeline = [
+        # 1. Filter candidates first (Optimization)
         {
             "$match": {
                 "normalized_text": {
-                    "$regex": pattern,
+                    "$regex": escaped_query,
                     "$options": "i",
                 }
             }
         },
-        {
-            "$addFields": {
-                "match_index": {
-                    "$indexOfCP": ["$normalized_text", normalized]
-                }
-            }
-        },
+        # 2. Assign Scores
         {
             "$addFields": {
                 "score": {
                     "$switch": {
                         "branches": [
-                            # Starts with query -> Highest priority
-                            {"case": {"$eq": ["$match_index", 0]}, "then": 3},
-                            # Contains exact query phrase -> High priority
-                            {"case": {"$gt": ["$match_index", -1]}, "then": 2},
+                            # P4: EXACT MATCH
+                            {
+                                "case": {"$eq": ["$normalized_text", normalized_query]},
+                                "then": 40
+                            },
+                            # P3: PREFIX MATCH (Start + Word Boundary check)
+                            # Regex: ^query\b
+                            {
+                                "case": {
+                                    "$regexMatch": {
+                                        "input": "$normalized_text",
+                                        "regex": f"^{escaped_query}\\b",
+                                        "options": "i"
+                                    }
+                                },
+                                "then": 30
+                            },
+                            # P2: WORD BOUNDARY MATCH
+                            # Regex: \bquery\b
+                            {
+                                "case": {
+                                    "$regexMatch": {
+                                        "input": "$normalized_text",
+                                        "regex": f"\\b{escaped_query}\\b",
+                                        "options": "i"
+                                    }
+                                },
+                                "then": 20
+                            }
                         ],
-                        # Default (Scattered match) -> Low priority
-                        "default": 1
+                        # P1: PARTIAL MATCH (Default)
+                        "default": 10
                     }
-                }
+                },
+                # Calculate length for tie-breaking: shorter matches are "closer" to the query
+                "text_len": {"$strLenCP": "$normalized_text"}
             }
         },
+        # 3. Sort deterministically
         {
             "$sort": {
-                "score": -1,
-                "message_id": ASCENDING
+                "score": -1,        # Higher score first
+                "text_len": 1,      # Shorter text first (closer to exact match)
+                "file_name": 1      # Alphabetical tie-breaker
             }
         },
         {"$skip": offset},
