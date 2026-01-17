@@ -39,7 +39,8 @@ def mark_file_as_forwarded(channel_id: int, message_id: int, dest_message_id: in
 
 def normalize_query(text: str) -> str:
     text = text.lower()
-    text = re.sub(r"[.\-_()\[\]]+", " ", text)
+    # Replace common separators with space, including '+'
+    text = re.sub(r"[.\-_()\[\]+]+", " ", text)
     text = re.sub(r"\s+", " ", text)
     return text.strip()
 
@@ -51,13 +52,21 @@ def search_movies(
 ):
     db = get_db()
     normalized = normalize_query(query)
+    
+    # Create a flexible regex pattern from the query terms
+    # Escape terms to handle special regex chars in the query itself
+    terms = [re.escape(term) for term in normalized.split()]
+    
+    # Pattern: term1 + [any separators]* + term2 + ...
+    # We match any sequence of non-alphanumeric chars as separators
+    pattern = r".*".join(terms)
 
     cursor = (
         db[MOVIES_COLLECTION]
         .find(
             {
                 "normalized_text": {
-                    "$regex": normalized,
+                    "$regex": pattern,
                     "$options": "i",
                 }
             },
@@ -81,10 +90,13 @@ def count_movies(query: str) -> int:
     db = get_db()
     normalized = normalize_query(query)
 
+    terms = [re.escape(term) for term in normalized.split()]
+    pattern = r".*".join(terms)
+
     return db[MOVIES_COLLECTION].count_documents(
         {
             "normalized_text": {
-                "$regex": normalized,
+                "$regex": pattern,
                 "$options": "i",
             }
         }

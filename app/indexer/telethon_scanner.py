@@ -21,7 +21,7 @@ logger = setup_logger()
 
 def normalize_text(text: str) -> str:
     text = text.lower()
-    text = re.sub(r"[.\-_()\[\]]+", " ", text)
+    text = re.sub(r"[.\-_()\[\]+]+", " ", text)
     text = re.sub(r"\s+", " ", text)
     return text.strip()
 
