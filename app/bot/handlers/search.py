@@ -1,4 +1,5 @@
 import base64
+from urllib.parse import quote_plus
 from telegram import Update
 from telegram.ext import ContextTypes
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -84,14 +85,35 @@ async def search_command(
 
     total = count_movies(query)
     if total == 0:
+        encoded_query = quote_plus(query)
+        google_url = f"https://www.google.com/search?q={encoded_query}"
+        
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("Check on Google 🔎", url=google_url)]
+        ])
+
         sent_msg = await message.reply_text(
-            "⚠️ Oops! We couldn’t process that search.\n\n"
-            "Please try searching using only the movie or series name, with an optional year, language, season, or episode.\n"
-            "Make sure the spelling is correct and avoid using special characters or extra words.\n\n"
-            "Also, check that the title is already OTT released.\n\n"
-            "Thanks for your understanding 😊\n"
-            "<i>This message will be deleted in 2 minutes.</i>",
-            parse_mode="HTML",
+            f"Hey {user.first_name} 👋 Please don’t send messages like this.\n"
+            "Search using ONLY the movie or series name.\n"
+            "You may add the year or language if needed.\n"
+            "(Make sure the spelling matches Google results) ❗🔍\n\n"
+            "Wrong examples:\n"
+            "KGF movie ❌\n"
+            "KGF link ❌\n"
+            "KGF undo ❌\n"
+            "KGF123 ❌ etc.\n\n"
+            "Correct examples:\n"
+            "KGF ✔️\n"
+            "KGF Tamil ✔️\n"
+            "KGF 2022 ✔️\n"
+            "Money Heist ✔️\n"
+            "Money Heist S1 ✔️\n"
+            "Money Heist S1E1 ✔️\n\n"
+            "🚫 Avoid special characters like:\n"
+            "@ # $ % & * ( ) ! / - ' \" , .\n\n"
+            "📺 Make sure the movie or series is released on OTT.\n\n"
+            "🔎 Re-check the spelling on google and try again 👇.",
+            reply_markup=keyboard,
         )
         
         schedule_auto_delete(
@@ -173,8 +195,7 @@ async def plain_text_search(
     if text.startswith("/"):
         return
 
-    if len(text) < 4:
-        return
+
 
     if len(text.split()) < 1:
         return
