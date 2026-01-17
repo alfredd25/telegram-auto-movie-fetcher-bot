@@ -64,13 +64,34 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if ad_text:
                 caption += f"\n\n{ad_text}"
 
-            await context.bot.copy_message(
-                chat_id=message.chat_id,
-                from_chat_id=target_channel_id,
-                message_id=target_message_id,
-                caption=caption,
-                parse_mode="HTML"
-            )
+            try:
+                await context.bot.copy_message(
+                    chat_id=message.chat_id,
+                    from_chat_id=target_channel_id,
+                    message_id=target_message_id,
+                    caption=caption,
+                    parse_mode="HTML"
+                )
+            except TelegramError as original_error:
+                # Retry logic for private channels (often missing -100 prefix)
+                if "Chat not found" in str(original_error) and target_channel_id > 0:
+                    try:
+                        fixed_channel_id = int(f"-100{target_channel_id}")
+                        logger.warning(f"Original ID {target_channel_id} failed. Retrying with {fixed_channel_id}")
+                        
+                        await context.bot.copy_message(
+                            chat_id=message.chat_id,
+                            from_chat_id=fixed_channel_id,
+                            message_id=target_message_id,
+                            caption=caption,
+                            parse_mode="HTML"
+                        )
+                    except TelegramError as retry_error:
+                        # If retry also fails, raise the original error (or the new one)
+                        logger.error(f"Retry failed: {retry_error}")
+                        raise original_error
+                else:
+                    raise original_error
             
         except TelegramError as e:
             if "Chat not found" in str(e):
