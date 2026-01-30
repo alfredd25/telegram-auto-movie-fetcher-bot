@@ -14,9 +14,9 @@ def ensure_indexes():
     movies = db[MOVIES_COLLECTION]
 
     movies.create_index(
-        [("file_unique_id", ASCENDING)],
+        [("file_unique_id", ASCENDING), ("channel_id", ASCENDING)],
         unique=True,
-        name="unique_file"
+        name="unique_file_channel"
     )
 
     movies.create_index(

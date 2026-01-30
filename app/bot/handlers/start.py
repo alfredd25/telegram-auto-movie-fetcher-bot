@@ -55,9 +55,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                  raise ValueError(f"Unknown format: {decoded_data}")
 
-            # Security check
-            if target_channel_id != int(DB_CHANNEL_ID):
-                 logger.warning(f"Channel ID mismatch. Target: {target_channel_id}, Config: {DB_CHANNEL_ID}")
+            # In multi-channel mode, target_channel_id usually differs from DB_CHANNEL_ID
+            # This is expected behavior, so we proceed to copy from target_channel_id.
 
             ad_text = get_ad_text()
             caption = f"Here is your file, requested by {user.mention_html()}"

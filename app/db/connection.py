@@ -1,8 +1,8 @@
-from pymongo import MongoClient, ASCENDING
+from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 from app.utils.config import DB_URI
 from app.utils.logger import setup_logger
-import certifi
+from urllib.parse import urlparse
 
 logger = setup_logger()
 
@@ -19,16 +19,24 @@ def get_db():
     try:
         _client = MongoClient(
             DB_URI,
-            tls=True,
-            tlsCAFile=certifi.where(),
             serverSelectionTimeoutMS=5000,
         )
-        _client.admin.command("ping")
+
+        # Parse DB name safely from URI
+        parsed = urlparse(DB_URI)
+        db_name = parsed.path.lstrip("/")
+
+        if not db_name:
+            raise RuntimeError("Database name missing in DB_URI")
+
+        # ✅ PING THE ACTUAL DATABASE (NOT admin)
+        _client[db_name].command("ping")
+
+        _db = _client[db_name]
+
     except ConnectionFailure as e:
-        logger.error("❌ Failed to connect to MongoDB Atlas")
+        logger.error("❌ Failed to connect to MongoDB")
         raise RuntimeError(e)
 
-    _db = _client.get_default_database()
-    logger.info("✅ Connected to MongoDB Atlas")
-
+    logger.info(f"✅ Connected to MongoDB (DB: {db_name})")
     return _db

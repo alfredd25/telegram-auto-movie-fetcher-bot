@@ -9,7 +9,7 @@ print("ENV PATH:", ENV_PATH)
 print("ENV EXISTS:", ENV_PATH.exists())
 
 
-load_dotenv(dotenv_path=ENV_PATH)
+load_dotenv(dotenv_path=ENV_PATH, override=True)
 
 print("BOT_TOKEN =", os.getenv("BOT_TOKEN"))
 
@@ -49,6 +49,7 @@ ADMIN_USER_IDS = {
 
 DB_TYPE = _required("DB_TYPE").lower()
 DB_URI = _required("DB_URI")
+print(f"DEBUG: Loaded DB_URI starting with: {DB_URI[:15]}...")
 
 AUTO_DELETE_SECONDS = int(
     os.getenv("AUTO_DELETE_SECONDS", "120")

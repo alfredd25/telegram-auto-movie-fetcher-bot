@@ -38,7 +38,7 @@ async def run_telethon_indexer():
     THROTTLE_DELAY = 0.15
 
     async with TelegramClient(
-        "telethon_session",
+        "indexer_session",
         TG_API_ID,
         TG_API_HASH,
     ) as client:

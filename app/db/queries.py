@@ -198,18 +198,21 @@ def set_ad_text(value: str):
 
 def get_last_indexed_message(channel_id: int) -> int | None:
     db = get_db()
+    # Use channel-specific ID to track progress separately for each channel
     doc = db[CONFIG_COLLECTION].find_one(
-        {"_id": "index_progress", "channel_id": channel_id}
+        {"_id": f"index_progress_{channel_id}"}
     )
     return doc["last_message_id"] if doc else None
 
 
 def update_last_indexed_message(channel_id: int, message_id: int):
     db = get_db()
+    # Upsert with channel-specific ID
     db[CONFIG_COLLECTION].update_one(
-        {"_id": "index_progress", "channel_id": channel_id},
+        {"_id": f"index_progress_{channel_id}"},
         {
             "$set": {
+                "channel_id": channel_id,
                 "last_message_id": message_id,
                 "updated_at": datetime.utcnow(),
             }
