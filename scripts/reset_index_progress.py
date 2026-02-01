@@ -7,9 +7,18 @@ Run this when you want to re-index from the beginning.
 
 import pymongo
 from urllib.parse import urlparse
+import os
+from pathlib import Path
+from dotenv import load_dotenv
 
-# Use localhost since MongoDB is now on RDP server
-DB_URI = "mongodb://localhost:27017/telegram_movie_bot"
+# Load .env from project root
+env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(env_path)
+
+DB_URI = os.getenv("DB_URI")
+if not DB_URI:
+    print("❌ Error: DB_URI not found in .env file")
+    exit(1)
 
 def main():
     print("=" * 50)
