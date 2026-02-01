@@ -62,25 +62,47 @@ async def run_telethon_indexer():
                 return
 
         try:
+            message_count = 0
             async for message in client.iter_messages(
                 DB_CHANNEL_ID,
                 min_id=last_indexed,
                 reverse=True,
             ):
-                if not message.file or not message.file.name:
+                message_count += 1
+                
+                # Debug: Log every message being processed
+                if not message.file:
+                    logger.debug(f"⏭️  Msg {message.id}: No file attached, skipping")
                     continue
+                    
+                if not message.file.name:
+                    # Try to get filename from document attribute for forwarded messages
+                    file_name = None
+                    if hasattr(message, 'document') and message.document:
+                        for attr in message.document.attributes:
+                            if hasattr(attr, 'file_name'):
+                                file_name = attr.file_name
+                                break
+                    
+                    if not file_name:
+                        logger.debug(f"⏭️  Msg {message.id}: File has no name, skipping")
+                        continue
+                else:
+                    file_name = message.file.name
+                
+                logger.info(f"🔍 Processing msg {message.id}: {file_name}")
 
                 metadata = {
                     "message_id": message.id,
                     "channel_id": DB_CHANNEL_ID,
                     "file_id": message.file.id,
                     "file_unique_id": str(message.file.id),
-                    "file_name": message.file.name,
+                    "file_name": file_name,
                     "file_size": message.file.size,
                     "caption": message.text or "",
                     "mime_type": message.file.mime_type,
                     "normalized_text": normalize_text(
-                        f"{message.file.name} {message.text or ''}"
+                        f"{file_name} {message.text or ''}"
                     ),
                 }
 
@@ -88,13 +110,17 @@ async def run_telethon_indexer():
                 processed_since_checkpoint += 1
 
                 if inserted:
-                    logger.info(f"📦 Indexed: {message.file.name}")
+                    logger.info(f"📦 Indexed: {file_name}")
+                else:
+                    logger.info(f"⚠️  Duplicate, skipped: {file_name}")
 
                 if processed_since_checkpoint >= CHECKPOINT_INTERVAL:
                     update_last_indexed_message(DB_CHANNEL_ID, message.id)
                     processed_since_checkpoint = 0
 
                 await asyncio.sleep(THROTTLE_DELAY)
+            
+            logger.info(f"📊 Total messages processed in this run: {message_count}")
 
         except FloodWaitError as e:
             logger.warning(
