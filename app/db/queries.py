@@ -2,7 +2,7 @@ from datetime import datetime
 from pymongo.errors import DuplicateKeyError
 
 from app.db.connection import get_db
-from app.db.models import MOVIES_COLLECTION, CONFIG_COLLECTION
+from app.db.models import MOVIES_COLLECTION, CONFIG_COLLECTION, DELETIONS_COLLECTION
 from app.utils.logger import setup_logger
 
 import re
@@ -219,3 +219,29 @@ def update_last_indexed_message(channel_id: int, message_id: int):
         },
         upsert=True,
     )
+
+
+# ---------- AUTO DELETE ----------
+
+def schedule_db_deletion(chat_id: int, bot_message_id: int, user_message_id: int | None, delete_at: datetime):
+    db = get_db()
+    db[DELETIONS_COLLECTION].insert_one({
+        "chat_id": chat_id,
+        "bot_message_id": bot_message_id,
+        "user_message_id": user_message_id,
+        "delete_at": delete_at,
+        "created_at": datetime.utcnow()
+    })
+
+
+def get_due_deletions() -> list[dict]:
+    db = get_db()
+    cursor = db[DELETIONS_COLLECTION].find(
+        {"delete_at": {"$lte": datetime.utcnow()}}
+    )
+    return list(cursor)
+
+
+def remove_deletion_task(task_id):
+    db = get_db()
+    db[DELETIONS_COLLECTION].delete_one({"_id": task_id})
