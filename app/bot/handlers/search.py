@@ -130,32 +130,37 @@ async def search_command(
         offset=0,
     )
 
-    lines = []
+    # Build inline buttons — one per result
+    file_buttons = []
     for idx, movie in enumerate(results, start=1):
-        # Create deep link payload: channel_id_message_id
-        # We encode it to keep it clean and URL safe
         payload_data = f"{movie['channel_id']}_{movie['message_id']}"
         encoded_payload = base64.urlsafe_b64encode(payload_data.encode()).decode()
-        
         link = f"https://t.me/{bot_username}?start=getfile-{encoded_payload}"
         size = format_size(movie.get('file_size'))
-        
-        lines.append(
-            f"{idx}. <a href='{link}'>{movie['file_name']}</a> ({size})"
-        )
 
-    reply_text = (
-        f"👋 Hi @{user.username or user.first_name},\n\n"
-        f"🎬 <b>Results for:</b> <i>{query}</i>\n\n"
-        + "\n".join(lines)
-        + f"\n\n📊 Showing {len(results)} of {total}"
-    )
+        file_buttons.append([
+            InlineKeyboardButton(
+                f"{idx}. {movie['file_name']} ({size})",
+                url=link,
+            )
+        ])
 
-    keyboard = build_pagination_keyboard(
+    # Append pagination row if needed
+    pagination_kb = build_pagination_keyboard(
         query=query,
         page=page,
         total=total,
         page_size=RESULTS_PER_PAGE,
+    )
+    if pagination_kb:
+        file_buttons.extend(pagination_kb.inline_keyboard)
+
+    keyboard = InlineKeyboardMarkup(file_buttons)
+
+    reply_text = (
+        f"👋 Hi @{user.username or user.first_name},\n\n"
+        f"🎬 <b>Results for:</b> <i>{query}</i>\n\n"
+        f"📊 Showing {len(results)} of {total}"
     )
 
     logger.info(

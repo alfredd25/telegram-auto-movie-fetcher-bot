@@ -1,5 +1,5 @@
 import base64
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.constants import ChatType
 from app.db.queries import get_ad_text
@@ -61,32 +61,38 @@ async def pagination_callback(
         )
         return
 
-    lines = []
+    # Build inline buttons — one per result
+    file_buttons = []
     for idx, movie in enumerate(
         results, start=offset + 1
     ):
-        # Create deep link payload
         payload_data = f"{movie['channel_id']}_{movie['message_id']}"
         encoded_payload = base64.urlsafe_b64encode(payload_data.encode()).decode()
-        
         link = f"https://t.me/{bot_username}?start=getfile-{encoded_payload}"
         size = format_size(movie.get('file_size'))
-        
-        lines.append(
-            f"{idx}. <a href='{link}'>{movie['file_name']}</a> ({size})"
-        )
 
-    text = (
-        f"🎬 <b>Results for:</b> <i>{search_query}</i>\n\n"
-        + "\n".join(lines)
-        + f"\n\n📊 Showing {len(results)} of {total}"
-    )
+        file_buttons.append([
+            InlineKeyboardButton(
+                f"{idx}. {movie['file_name']} ({size})",
+                url=link,
+            )
+        ])
 
-    keyboard = build_pagination_keyboard(
+    # Append pagination row if needed
+    pagination_kb = build_pagination_keyboard(
         query=search_query,
         page=page,
         total=total,
         page_size=RESULTS_PER_PAGE,
+    )
+    if pagination_kb:
+        file_buttons.extend(pagination_kb.inline_keyboard)
+
+    keyboard = InlineKeyboardMarkup(file_buttons)
+
+    text = (
+        f"🎬 <b>Results for:</b> <i>{search_query}</i>\n\n"
+        f"📊 Showing {len(results)} of {total}"
     )
 
     text += f"\n\n{AUTO_DELETE_NOTICE}"
